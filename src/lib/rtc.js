@@ -36,6 +36,7 @@ export function createPeerSession({
 		const [remoteStream] = streams;
 		if (remoteVideo && remoteStream) {
 			remoteVideo.srcObject = remoteStream;
+			void remoteVideo.play().catch(() => {});
 		}
 	};
 
@@ -50,6 +51,7 @@ export function createPeerSession({
 
 		if (localVideo) {
 			localVideo.srcObject = localStream;
+			void localVideo.play().catch(() => {});
 		}
 
 		for (const track of localStream.getTracks()) {
