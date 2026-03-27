@@ -23,6 +23,7 @@ export function createPeerSession({
 	let remoteVideoElement = remoteVideo;
 	let localStream;
 	const remoteStream = new MediaStream();
+	const pendingIceCandidates = [];
 
 	function attachVideoStream(videoElement, stream, { muted = false } = {}) {
 		if (!videoElement || !stream) return;
@@ -57,6 +58,10 @@ export function createPeerSession({
 			remoteStream.addTrack(track);
 		}
 
+		track?.addEventListener('unmute', () => {
+			attachVideoStream(remoteVideoElement, remoteStream);
+		});
+
 		attachVideoStream(remoteVideoElement, remoteStream);
 	};
 
@@ -66,6 +71,17 @@ export function createPeerSession({
 
 	function remoteStreamHasTrack(trackId) {
 		return remoteStream.getTracks().some((streamTrack) => streamTrack.id === trackId);
+	}
+
+	async function applyRemoteDescription(description) {
+		if (!description || peerConnection.currentRemoteDescription) return;
+
+		await peerConnection.setRemoteDescription(description);
+
+		while (pendingIceCandidates.length > 0) {
+			const candidate = pendingIceCandidates.shift();
+			await peerConnection.addIceCandidate(candidate);
+		}
 	}
 
 	async function startLocalMedia(constraints) {
@@ -95,9 +111,7 @@ export function createPeerSession({
 
 	async function handleSignalMessage({ type, payload }) {
 		if (type === 'offer') {
-			if (!peerConnection.currentRemoteDescription) {
-				await peerConnection.setRemoteDescription(payload);
-			}
+			await applyRemoteDescription(payload);
 
 			const answer = await peerConnection.createAnswer();
 			await peerConnection.setLocalDescription(answer);
@@ -113,13 +127,16 @@ export function createPeerSession({
 		}
 
 		if (type === 'answer') {
-			if (!peerConnection.currentRemoteDescription) {
-				await peerConnection.setRemoteDescription(payload);
-			}
+			await applyRemoteDescription(payload);
 			return;
 		}
 
 		if (type === 'ice-candidate' && payload) {
+			if (!peerConnection.currentRemoteDescription) {
+				pendingIceCandidates.push(payload);
+				return;
+			}
+
 			await peerConnection.addIceCandidate(payload);
 		}
 	}
