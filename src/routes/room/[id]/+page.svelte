@@ -1,4 +1,5 @@
 <script>
+	import { env } from '$env/dynamic/public';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { createPeerSession } from '$lib/rtc.js';
@@ -16,10 +17,7 @@
 	let copied = $state(false);
 
 	const roomId = $derived(data.roomId);
-	const signalUrl =
-		typeof window === 'undefined'
-			? 'ws://localhost:8080'
-			: `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8080`;
+	const signalUrl = env.PUBLIC_SIGNAL_URL || 'ws://localhost:8080';
 
 	onMount(() => {
 		let cancelled = false;

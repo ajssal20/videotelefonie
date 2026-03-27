@@ -1,6 +1,7 @@
 import { WebSocketServer } from 'ws';
 
-const wss = new WebSocketServer({ port: 8080 });
+const port = Number(process.env.PORT || 8080);
+const wss = new WebSocketServer({ port });
 const rooms = new Map();
 
 function ensureRoom(roomId) {
@@ -62,4 +63,4 @@ wss.on('connection', (socket) => {
 	});
 });
 
-console.log('WebSocket signaling server running on ws://localhost:8080');
+console.log(`WebSocket signaling server running on ws://localhost:${port}`);
