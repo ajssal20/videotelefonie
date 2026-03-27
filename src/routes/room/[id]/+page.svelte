@@ -35,15 +35,20 @@
 			});
 
 			socket.addEventListener('message', async ({ data: rawData }) => {
-				if (!session) return;
-
 				try {
 					const message = JSON.parse(rawData);
 
+					await ensureSession();
+
 					if (message.type === 'peer-ready') {
+						await ensureLocalMedia();
 						status = 'Zweiter Teilnehmer beigetreten. Angebot wird erstellt...';
 						await session.createOffer();
 						return;
+					}
+
+					if (message.type === 'offer') {
+						await ensureLocalMedia();
 					}
 
 					await session.handleSignalMessage(message);
@@ -78,31 +83,55 @@
 		};
 	});
 
+	const ensureSession = async () => {
+		if (session) {
+			session.setLocalVideoElement(localVideo);
+			session.setRemoteVideoElement(remoteVideo);
+			return session;
+		}
+
+		session = createPeerSession({
+			roomId,
+			socket,
+			localVideo,
+			remoteVideo,
+			onConnectionStateChange: (nextState) => {
+				status = `Verbindungsstatus: ${nextState}`;
+			}
+		});
+
+		return session;
+	};
+
+	$effect(() => {
+		if (!session) return;
+
+		session.setLocalVideoElement(localVideo);
+		session.setRemoteVideoElement(remoteVideo);
+	});
+
+	const ensureLocalMedia = async () => {
+		await ensureSession();
+
+		if (mediaStarted) {
+			return;
+		}
+
+		await session.startLocalMedia({
+			video: true,
+			audio: true
+		});
+		mediaStarted = true;
+		status = 'Lokale Kamera aktiv.';
+	};
+
 	const startSession = async () => {
 		error = '';
 		copied = false;
 
 		try {
-			if (!session) {
-				session = createPeerSession({
-					roomId,
-					socket,
-					localVideo,
-					remoteVideo,
-					onConnectionStateChange: (nextState) => {
-						status = `Verbindungsstatus: ${nextState}`;
-					}
-				});
-			}
-
-			if (!mediaStarted) {
-				await session.startLocalMedia({
-					video: true,
-					audio: true
-				});
-				mediaStarted = true;
-				status = 'Lokale Kamera aktiv.';
-			}
+			await ensureSession();
+			await ensureLocalMedia();
 
 			if (!socket || socket.readyState !== WebSocket.OPEN) {
 				error = `Der Signaling-Server auf ${signalUrl} ist nicht erreichbar.`;
