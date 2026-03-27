@@ -39,3 +39,22 @@ Setze im Frontend-Hosting dann die Variable `PUBLIC_SIGNAL_URL`, zum Beispiel:
 ```sh
 PUBLIC_SIGNAL_URL=wss://dein-signal-server.example.com
 ```
+
+## Render fuer den Signaling-Server
+
+In diesem Repo liegt bereits eine [render.yaml](c:\Users\User\Desktop\Shkoll\Media\ProjektITP\videocall\render.yaml). Du kannst deshalb direkt dieses Repository bei Render importieren.
+
+Render verwendet dann:
+
+```sh
+npm install
+npm run start:signal
+```
+
+Nach dem Deploy bekommst du eine URL wie:
+
+```sh
+wss://videocall-signal.onrender.com
+```
+
+Diese URL traegst du in Vercel als `PUBLIC_SIGNAL_URL` ein und startest danach ein neues Deployment.
