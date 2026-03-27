@@ -18,6 +18,35 @@
 
 	const roomId = $derived(data.roomId);
 	const signalUrl = env.PUBLIC_SIGNAL_URL || 'ws://localhost:8080';
+	const iceServers = buildIceServers();
+
+	function buildIceServers() {
+		const stunUrls = splitList(env.PUBLIC_STUN_URLS) || ['stun:stun.l.google.com:19302'];
+		const turnUrls = splitList(env.PUBLIC_TURN_URLS);
+		const turnUsername = env.PUBLIC_TURN_USERNAME?.trim();
+		const turnCredential = env.PUBLIC_TURN_CREDENTIAL?.trim();
+		const servers = stunUrls.map((urls) => ({ urls }));
+
+		if (turnUrls && turnUsername && turnCredential) {
+			servers.push({
+				urls: turnUrls,
+				username: turnUsername,
+				credential: turnCredential
+			});
+		}
+
+		return servers;
+	}
+
+	function splitList(value) {
+		const entries =
+			value
+				?.split(',')
+				.map((entry) => entry.trim())
+				.filter(Boolean) || [];
+
+		return entries.length > 0 ? entries : null;
+	}
 
 	onMount(() => {
 		let cancelled = false;
@@ -93,6 +122,7 @@
 			socket,
 			localVideo,
 			remoteVideo,
+			iceServers,
 			onConnectionStateChange: (nextState) => {
 				status = `Verbindungsstatus: ${nextState}`;
 			}
